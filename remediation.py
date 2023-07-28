@@ -20,7 +20,7 @@ def get_group_info(client, group_id):
 
 def remediate(client, group_id, port_no):
     client.revoke_security_group_ingress(
-        CidrIp='172.31.0.0/16',      # try for now
+        CidrIp='172.31.0.0/16',     # why not 0.0.0.0/0?
         FromPort=port_no,
         GroupId=group_id,
         ToPort=port_no,
