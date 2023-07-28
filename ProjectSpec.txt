@@ -1,0 +1,73 @@
+Secret Server (must be on VPN):
+https://uspcs.us.deloitte.com/USPCS/Login.aspx?ReturnUrl=%2fUSPCS%2f
+
+AWS Login:
+https://myapps.microsoft.com/
+
+
+Tools:
+EventBridge
+Lambda
+EC2 Security Groups
+Boto3 SDK for AWS
+Moto library (http://docs.getmoto.org/en/latest/)
+
+Task:
+Build a function that remediates Security Group rules that open port 22 or port 3389 to the CIDR 0.0.0.0/0
+
+Security group:
+boto3 docs - working with security groups in Amazon EC2
+https://www.youtube.com/watch?v=nA3yN76cNxo
+
+Create unit tests as listed below using the Moto library
+http://docs.getmoto.org/en/latest/docs/services/ec2.html
+
+Remediation Action:
+Revoke the offending rule only
+
+Invocation:
+Lambda should be invoked and perform the check each time a security group is created or changed (Eventbridge)
+
+Tests to Perform:
+Create new security group rule with Port 22 open to 0.0.0.0/0 - rule should be revoked
+
+Create new security group rule with Port 3389 open to 0.0.0.0/0 - rule should be revoked
+
+Create new security group rule with Port 22 open to 10.0.0.0/8 - rule should not be modified or revoked
+
+Create new security group rule with Port 3389 open to 10.0.0.0/8 - rule should not be modified or revoked
+
+Create new security group with rule that has Port 22 open to 0.0.0.0/0 - rule should be revoked
+
+Create new security group with rule that has Port 3389 open to 0.0.0.0/0 - rule should be revoked
+
+Create new security group with rule that has Port 22 open to 10.0.0.0/8 - rule should not be modified or revoked
+
+Create new security group with rule that has Port 3389 open to 10.0.0.0/8 - rule should not be modified or revoked
+
+Create new security group rule with Port 22 open to 0.0.0.0/0 in Security Group with a non-offending rule - rule should be revoked but non-offending rule should not be changed
+
+Create new security group rule with Port 3389 open to 0.0.0.0/0 in Security Group with a non-offending rule (10.0.0.0/8) - rule should be revoked but non-offending rule should not be changed
+
+Create new security group rule with Port 22 open to 10.0.0.0/8 in Security Group with existing non-offending rule (10.0.0.0/8) - no rule should not be modified or revoked
+
+Create new security group rule with Port 3389 open to 10.0.0.0/8 in Security Group with existing non-offending rule (10.0.0.0/8) - no rule should not be modified or revoked
+
+Create new security group with rule that has Port 22 open to 0.0.0.0/0 and another rule with Port 22 open to 10.0.0.0/8 - only the 0.0.0.0/0 rule should be revoked
+
+Create new security group with rule that has Port 3389 open to 0.0.0.0/0 and another rule with Port 22 open to 10.0.0.0/8  - only the 0.0.0.0/0 rule should be revoked
+
+Create new security group with rule that has Port 22 open to 10.0.0.0/8 and another rule with Port 3389 open to 10.0.0.0/8  - no rules should be modified or revoked
+
+Next Steps:
+Consider how you would improve this solution - 
+
+Could you make it only authorize certain IPs (e.g. a list of Deloitte VPN CIDRs)?
+
+Can you branch to cover all ports except 80 and 443?
+
+How would you handle exceptions? Account level, Security Group level? Where is the optimal level to have them?
+
+What if we're onboarding an existing account and want to scan for these but not remediate? How could you alter the solution efficiently for this "read-only" scan?
+
+What shortcomings exist if this is our only scan for Security Groups?
