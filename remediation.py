@@ -15,12 +15,20 @@ def get_event_details(event):
 # describe security group
 def get_group_info(client, group_id):
     res = client.describe_security_groups(GroupIds=[group_id])
-    print(res)
     return res
 
 def remediate(client, group_id, port_no):
+    group = get_group_info(client, group_id)
+    rule = {'CidrIp': '0.0.0.0/0'}
+    
+    # Assuming only 1 security group - could add nested for loop
+    for i in group["SecurityGroups"][0]["IpPermissions"]:
+        if i['FromPort'] == port_no and rule not in i["IpRanges"]:
+            print('ok')
+            return
+
     client.revoke_security_group_ingress(
-        CidrIp='0.0.0.0/0',     # 172.31.0.0/16
+        CidrIp='0.0.0.0/0',     # 172.31.0.0/16 in EC2?
         FromPort=port_no,
         GroupId=group_id,
         ToPort=port_no,
