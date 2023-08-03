@@ -63,8 +63,10 @@ Next Steps:
 Consider how you would improve this solution - 
 
 Could you make it only authorize certain IPs (e.g. a list of Deloitte VPN CIDRs)?
+- for loop to authorize and then revoke rules with specific IP address, use /32 prefix length (assuming IPv4)
 
 Can you branch to cover all ports except 80 and 443?
+- use -1, then authorize 80 and 443
 
 How would you handle exceptions? Account level, Security Group level? Where is the optimal level to have them?
 

@@ -3,7 +3,7 @@ from moto import mock_ec2
 from remediation import remediate, get_group_info
 
 
-# Revoke Port 22 ingress
+# Revoke Port 22 ingress - within range
 @mock_ec2
 def test_1():
     ec2_client = boto3.client('ec2', region_name='us-east-1')
@@ -21,12 +21,12 @@ def test_1():
         GroupId=security_group_id,
         IpPermissions=[
             {'IpProtocol': 'tcp',
-             'FromPort': 22,
-             'ToPort': 22,
+             'FromPort': 21,
+             'ToPort': 23,
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 22)
+    ans = remediate(ec2_client, security_group_id, 21, 23, 22)
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -55,7 +55,7 @@ def test_2():
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 3389)
+    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389)
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -84,8 +84,8 @@ def test_3():
              'IpRanges': [{'CidrIp': '10.0.0.0/8'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 3389)
-    assert(ans == None)
+    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389)
+    assert(ans == 'InvalidPermission.NotFound')
     print(get_group_info(ec2_client, security_group_id))
 
 test_3()
@@ -113,7 +113,7 @@ def test_4():
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}, {'CidrIp': '10.0.0.0/8'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 22)
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -141,15 +141,48 @@ def test_5():
              'ToPort': 22,
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}, {'CidrIp': '10.0.0.0/8'}]},
              {'IpProtocol': 'tcp',
-              'FromPort': 3389,
-              'ToPort': 3389,
+              'FromPort': 3387,
+              'ToPort': 3390,
               'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
     ])
 
-    ans = remediate(ec2_client, security_group_id, 22)
-    ans2 = remediate(ec2_client, security_group_id, 3389)
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
+    ans2 = remediate(ec2_client, security_group_id, 3387, 3390, 3389)
     assert(ans == None)
     assert(ans2 == None)
     print(get_group_info(ec2_client, security_group_id))
 
 test_5()
+
+# Error catch if security group no longer exists
+@mock_ec2
+def test_6():
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+    
+    # Create security group
+    response = ec2_client.create_security_group(
+        GroupName='Test5',
+        Description='Port 22 and 3389 open to 0.0.0.0/0',
+    )
+
+    security_group_id = response['GroupId']
+
+    # Authorize security group ingress
+    ec2_client.authorize_security_group_ingress(
+        GroupId=security_group_id,
+        IpPermissions=[
+            {'IpProtocol': 'tcp',
+             'FromPort': 22,
+             'ToPort': 22,
+             'IpRanges': [{'CidrIp': '0.0.0.0/0'}, {'CidrIp': '10.0.0.0/8'}]},
+    ])
+
+    ec2_client.delete_security_group(
+        GroupId=security_group_id
+    )
+
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
+    assert(ans == "Security Group Error")
+    print(ans)
+
+test_6()
