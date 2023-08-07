@@ -26,7 +26,7 @@ def test_1():
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 21, 23, 22)
+    ans = remediate(ec2_client, security_group_id, 21, 23, 22, '0.0.0.0/0')
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -55,7 +55,7 @@ def test_2():
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389)
+    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389, '0.0.0.0/0')
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -84,7 +84,7 @@ def test_3():
              'IpRanges': [{'CidrIp': '10.0.0.0/8'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389)
+    ans = remediate(ec2_client, security_group_id, 3389, 3389, 3389, '0.0.0.0/0')
     assert(ans == 'InvalidPermission.NotFound')
     print(get_group_info(ec2_client, security_group_id))
 
@@ -113,7 +113,7 @@ def test_4():
              'IpRanges': [{'CidrIp': '0.0.0.0/0'}, {'CidrIp': '10.0.0.0/8'}]},
     ])
 
-    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22, '0.0.0.0/0')
     assert(ans == None)
     print(get_group_info(ec2_client, security_group_id))
 
@@ -146,8 +146,8 @@ def test_5():
               'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
     ])
 
-    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
-    ans2 = remediate(ec2_client, security_group_id, 3387, 3390, 3389)
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22, '0.0.0.0/0')
+    ans2 = remediate(ec2_client, security_group_id, 3387, 3390, 3389, '0.0.0.0/0')
     assert(ans == None)
     assert(ans2 == None)
     print(get_group_info(ec2_client, security_group_id))
@@ -181,8 +181,37 @@ def test_6():
         GroupId=security_group_id
     )
 
-    ans = remediate(ec2_client, security_group_id, 22, 22, 22)
+    ans = remediate(ec2_client, security_group_id, 22, 22, 22, '0.0.0.0/0')
     assert(ans == "Security Group Error")
     print(ans)
 
 test_6()
+
+# Revoke Port 22 ingress - less than 256 addresses, won't revoke
+@mock_ec2
+def test_7():
+    ec2_client = boto3.client('ec2', region_name='us-east-1')
+    
+    # Create security group
+    response = ec2_client.create_security_group(
+        GroupName='Test7',
+        Description='Port 22 open to 152.2.136.0/26 - rule should not be revoked',
+    )
+
+    security_group_id = response['GroupId']
+
+    # Authorize security group ingress
+    ec2_client.authorize_security_group_ingress(
+        GroupId=security_group_id,
+        IpPermissions=[
+            {'IpProtocol': 'tcp',
+             'FromPort': 21,
+             'ToPort': 23,
+             'IpRanges': [{'CidrIp': '152.2.136.0/26'}]},
+    ])
+
+    ans = remediate(ec2_client, security_group_id, 21, 23, 22, '152.2.136.0/26')
+    assert(ans == "Less than 256 IP addresses")
+    print(ans)
+
+test_7()
