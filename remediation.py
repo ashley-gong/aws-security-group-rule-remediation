@@ -4,10 +4,11 @@ import json
 import ipaddress
 
 class Event:
-    def __init__(self, group_id="", from_port=0, to_port=0):
+    def __init__(self, group_id="", from_port=0, to_port=0, cidr=""):
         self.group_id = group_id
         self.from_port = from_port
         self.to_port = to_port
+        self.cidr = cidr
 
 # for Lambda handler
 def get_event_details(event):
@@ -16,6 +17,7 @@ def get_event_details(event):
     e.group_id = group["groupId"]
     e.from_port = group["ipPermissions"]["items"][0]["fromPort"]
     e.to_port = group["ipPermissions"]["items"][0]["toPort"]
+    e.cidr = group["ipPermissions"]["items"][0]["ipRanges"]["items"][0]["cidrIp"]
     return e
 
 # describe security group
@@ -56,8 +58,8 @@ def lambda_handler(event, context):
     print(event)
     e = get_event_details(event)
     ec2_client = boto3.client('ec2', region_name='us-east-1')
-    remediate(ec2_client, e.group_id, e.from_port, e.to_port, 22, "172.31.0.0/16")
-    remediate(ec2_client, e.group_id, e.from_port, e.to_port, 3389, "172.31.0.0/16")
+    remediate(ec2_client, e.group_id, e.from_port, e.to_port, 22, e.cidr)
+    remediate(ec2_client, e.group_id, e.from_port, e.to_port, 3389, e.cidr)
     group_info = get_group_info(ec2_client, e.group_id)
     print(group_info)
     return {

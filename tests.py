@@ -2,7 +2,6 @@ import boto3
 from moto import mock_ec2
 from remediation import remediate, get_group_info
 
-
 # Revoke Port 22 ingress - within range
 @mock_ec2
 def test_1():
